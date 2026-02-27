@@ -14,7 +14,7 @@
   --danger-color: #e74c3c;
   --text-color: #333;
   --border-radius: 8px;
-  --box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s ease;
 }
 
@@ -25,7 +25,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.6;
   color: var(--text-color);
   background: #f5f5f5;
@@ -38,17 +38,15 @@ body {
   padding: 0 15px;
 }
 
-/* ----------------------------------------
-   HEADER & NAVIGATION
----------------------------------------- */
+/* HEADER & NAVIGATION */
 header {
   background: linear-gradient(135deg, var(--dark-color), #34495e);
   color: white;
   padding: 1rem 0;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   position: sticky;
   top: 0;
-  /* z-index: 1000; */
+  z-index: 2;
 }
 
 header .container {
@@ -88,19 +86,33 @@ header h1 a:hover {
 }
 
 #main-menu a:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--primary-color);
 }
 
 /* ----------------------------------------
    MAIN CONTENT AREA
 ---------------------------------------- */
+.content-wrapper {
+  display: grid;
+  grid-template-columns:250px 1fr;
+}
+
+.sidebar {
+  width: 250px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-top: 2rem;
+}
+
 .main-content {
   background: white;
   padding: 2rem;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  margin: 2rem 0;
+  margin: 2rem 0 0 2rem;
   min-height: 60vh;
 }
 
@@ -129,12 +141,13 @@ header h1 a:hover {
   overflow: hidden;
   transition: var(--transition);
   position: relative;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  z-index: 1;
 }
 
 .project-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
 }
 
 .project-card-content {
@@ -269,7 +282,9 @@ header h1 a:hover {
   color: var(--dark-color);
 }
 
-.form-text, .form-textarea, .form-select {
+.form-text,
+.form-textarea,
+.form-select {
   width: 100%;
   padding: 0.8rem;
   border: 2px solid #eee;
@@ -278,10 +293,12 @@ header h1 a:hover {
   transition: var(--transition);
 }
 
-.form-text:focus, .form-textarea:focus, .form-select:focus {
+.form-text:focus,
+.form-textarea:focus,
+.form-select:focus {
   border-color: var(--primary-color);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .form-submit {
@@ -299,7 +316,7 @@ header h1 a:hover {
 .form-submit:hover {
   background: #2980b9;
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(52,152,219,0.3);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
 }
 
 .button-danger {
@@ -344,7 +361,6 @@ header h1 a:hover {
 footer {
   background: var(--dark-color);
   color: white;
-  text-align: center;
   padding: 2rem 0;
   margin-top: 3rem;
 }
@@ -361,21 +377,21 @@ footer p {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   #main-menu {
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.5rem;
   }
-  
+
   .projects-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .page-title {
     font-size: 1.5rem;
   }
-  
+
   .project-meta strong {
     display: block;
     margin-bottom: 0.3rem;
@@ -401,8 +417,18 @@ footer p {
   animation-fill-mode: both;
 }
 
-.project-card:nth-child(1) { animation-delay: 0.1s; }
-.project-card:nth-child(2) { animation-delay: 0.2s; }
-.project-card:nth-child(3) { animation-delay: 0.3s; }
-.project-card:nth-child(4) { animation-delay: 0.4s; }
-.project-card:nth-child(5) { animation-delay: 0.5s; }
+.project-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.project-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.project-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.project-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+.project-card:nth-child(5) {
+  animation-delay: 0.5s;
+}

@@ -13,7 +13,11 @@
 <body class="<?php print $classes; ?>" <?php print $attributes; ?>>
     <header>
         <div class="container">
-            <h1><a href="/drupal7/">My Portfolio</a></h1>
+            <h1>
+                <a href="<?php print $front_page; ?>">
+                    <?php print $site_name; ?>
+                </a>
+            </h1>
             <?php if ($main_menu): ?>
                 <nav>
                     <?php print theme('links__system_main_menu', array(
@@ -27,7 +31,13 @@
         </div>
     </header>
 
-    <div class="container">
+    <div class="container <?= $page['sidebar'] ? 'content-wrapper' : '' ?> ">
+        <?php if ($page['sidebar']): ?>
+            <aside class="sidebar">
+                <?php print render($page['sidebar']); ?>
+            </aside>
+        <?php endif; ?>
+
         <main class="main-content">
             <?php print render($title_prefix); ?>
             <?php if ($title): ?>
@@ -45,12 +55,6 @@
 
             <?php print render($page['content']); ?>
         </main>
-
-        <?php if ($page['sidebar']): ?>
-            <aside class="sidebar">
-                <?php print render($page['sidebar']); ?>
-            </aside>
-        <?php endif; ?>
     </div>
 
     <footer>

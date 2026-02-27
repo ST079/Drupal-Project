@@ -397,9 +397,8 @@ function portfolio_project_form_submit($form, &$form_state)
     }
 }
 
-/**
- * 🆕 Delete confirmation form
- */
+//Delete confirmation form
+
 function portfolio_project_delete_confirm($form, &$form_state, $project)
 {
     $form_state['project'] = $project;
@@ -414,9 +413,8 @@ function portfolio_project_delete_confirm($form, &$form_state, $project)
     );
 }
 
-/**
- * 🆕 Delete submit handler
- */
+//Delete submit handler
+
 function portfolio_project_delete_confirm_submit($form, &$form_state)
 {
     $project = $form_state['project'];
