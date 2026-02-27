@@ -1,0 +1,45 @@
+<?php
+/**
+ * Implements hook_schema().
+ * This runs when module is installed
+ */
+
+function portfolio_schema()
+{
+    //defines the database table for portfolio projects
+    $schema["portfolio_projects"] = array(
+        "fields" => array(
+            "pid" => array(
+                "type" => "serial",
+                "unsigned" => TRUE,
+                "not null" => TRUE,
+            ),
+            "title" => array(
+                "type" => "varchar",
+                "length" => 255,
+                "not null" => TRUE,
+                "default" => "",
+            ),
+            "description" => array(
+                "type" => "text",
+                "not null" => false,
+            ),
+            "technologies" => array(
+                "type" => "text",
+                "not null" => false,
+                'serialize' => TRUE,  // Automatically converts array to string
+            ),
+            "created" => array(
+                "type" => "int",
+                "not null" => TRUE,
+                "default" => 0,
+            ),
+        ),
+        'primary key' => array('pid'),
+    );
+
+    return $schema;
+}
+
+
+

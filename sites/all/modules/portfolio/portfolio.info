@@ -1,0 +1,5 @@
+name = Portfolio Custom Module
+description = Custom project entity for portfolio management
+core = 7.x
+package = My Modules
+dependencies[] = entity

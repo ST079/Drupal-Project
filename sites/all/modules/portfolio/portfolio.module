@@ -1,0 +1,514 @@
+<?php
+/**
+ * @file
+ * Main module file for Portfolio
+ *
+ * Implements hook_entity_info()
+ * Tells Drupal about our custom entity
+ */
+
+function portfolio_entity_info()
+{
+    $info = array();
+
+    //machine name "portfolio_project" that will be used throughout the code to reference this entity type.
+    $info["portfolio_project"] = array(
+        "label" => t("Project"),
+        "controller class" => "EntityAPIController", //Uses Entity API module's controller (requires entity module) 
+        "base table" => "portfolio_projects", //Database table defined in hook_schema
+        "entity keys" => array(
+            "id" => "pid", //Primary key defined in hook_schema
+            "label" => "title", //Field used as label for the entity
+        ),
+        "module" => "portfolio", //Module that defines this entity
+        "access callback" => TRUE,
+    );
+
+    return $info;
+}
+
+
+/**
+ * Create a new project entity
+ * 
+ * @param array $values
+ * @return PortfolioProject
+ */
+
+function portfolio_project_create($values = array())
+{
+    $values += array(
+        'pid' => NULL,
+        'title' => '',
+        'description' => '',
+        'technologies' => array(),
+        'created' => REQUEST_TIME, //Drupal constant for current timestamp
+    );
+    return entity_create("portfolio_project", $values); //Entity API function to create new entity
+}
+
+/**
+ * Save a project entity
+ * 
+ * @param object $project
+ * @return int|bool
+ */
+
+function portfolio_project_save($project)
+{
+    // Set changed timestamp
+    $project->changed = REQUEST_TIME;
+    return entity_save('portfolio_project', $project);
+}
+
+/**
+ * Load multiple projects
+ * 
+ * @param array $ids
+ * @return array
+ */
+function portfolio_project_load_multiple($ids = array())
+{
+    return entity_load('portfolio_project', $ids);
+}
+
+/**
+ * Load single project
+ * 
+ * @param int $pid
+ * @return object|false
+ */
+function portfolio_project_load($pid)
+{
+    $projects = portfolio_project_load_multiple(array($pid));
+    return $projects ? reset($projects) : FALSE;
+}
+
+/**
+ * Implements hook_menu()
+ * Creates URLs for our module
+ */
+function portfolio_menu()
+{
+    $items = array();
+
+    // Main listing page: /projects
+    $items['projects'] = array(
+        'title' => 'My Projects',
+        'description' => 'View my portfolio projects',
+        'page callback' => 'portfolio_project_list',
+        'access callback' => TRUE,  // Anyone can see
+        'type' => MENU_NORMAL_ITEM,  // Appears in main menu
+    );
+
+    $items['projects/%portfolio_project'] = array(
+        'title callback' => 'entity_label',
+        'title arguments' => array('portfolio_project', 1),
+        "page callback" => 'portfolio_project_view',
+        "page arguments" => array(1),
+        "access callback" => TRUE,  // Anyone can see
+        "type" => MENU_CALLBACK,  // Not a menu item, just a URL callback
+    );
+
+    // $items['create-test-project'] = array(
+    //     'page callback' => 'portfolio_create_test',
+    //     'access arguments' => array('administer site configuration'),
+    //     'type' => MENU_CALLBACK,
+    // );
+
+    // Admin section for projects
+    $items['admin/content/projects'] = array(
+        'title' => 'Projects',
+        'description' => 'Manage your portfolio projects',
+        'page callback' => 'portfolio_admin_list',
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_NORMAL_ITEM,
+        'weight' => 10,
+    );
+
+    // Add project form
+    $items['admin/content/projects/add'] = array(
+        'title' => 'Add Project',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('portfolio_project_form'),
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_LOCAL_ACTION,
+    );
+
+    // Edit project form
+    $items['admin/content/projects/%portfolio_project/edit'] = array(
+        'title' => 'Edit Project',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('portfolio_project_form', 3),
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_CALLBACK,
+    );
+
+    // Delete project
+    $items['admin/content/projects/%portfolio_project/delete'] = array(
+        'title' => 'Delete Project',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('portfolio_project_delete_confirm', 3),
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_CALLBACK,
+    );
+
+    return $items;
+}
+
+
+/**
+ * Page callback: Lists all projects - UPDATED WITH BETTER UI
+ */
+function portfolio_project_list()
+{
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'portfolio_project')
+        ->propertyOrderBy('created', 'DESC'); // Show newest first
+
+    $results = $query->execute();
+
+    if (empty($results['portfolio_project'])) {
+        return '<div class="messages status">No projects found. Check back soon!</div>';
+    }
+
+    $projects = entity_load('portfolio_project', array_keys($results['portfolio_project']));
+
+    // Start building grid
+    $output = '<div class="projects-grid">';
+
+    foreach ($projects as $project) {
+        // Limit description to 150 characters
+        $description = strip_tags($project->description);
+        if (strlen($description) > 150) {
+            $description = substr($description, 0, 150) . '...';
+        }
+
+        // Build technologies tags
+        $tech_html = '';
+        if (!empty($project->technologies)) {
+            $tech_html = '<div class="project-tech">';
+            foreach (array_slice($project->technologies, 0, 4) as $tech) {
+                $tech_html .= '<span class="tech-tag">' . check_plain($tech) . '</span>';
+            }
+            if (count($project->technologies) > 4) {
+                $tech_html .= '<span class="tech-tag">+' . (count($project->technologies) - 4) . '</span>';
+            }
+            $tech_html .= '</div>';
+        }
+
+        $output .= '<div class="project-card">';
+        $output .= '<div class="project-card-content">';
+        $output .= '<h3>' . check_plain($project->title) . '</h3>';
+        $output .= '<div class="project-description">' . check_plain($description) . '</div>';
+        $output .= $tech_html;
+        $output .= l(t('View Project →'), 'projects/' . $project->pid, array(
+            'attributes' => array('class' => array('read-more'))
+        ));
+        $output .= '</div>';
+        $output .= '</div>';
+    }
+
+    $output .= '</div>';
+
+    return $output;
+}
+
+/**
+ * Page callback: Display single project
+ */
+
+function portfolio_project_view($project)
+{
+    if (!$project) {
+        return MENU_NOT_FOUND; // Return 404 if project not found
+    }
+
+    drupal_set_title($project->title); // Set page title to project title
+
+    $technologies = !empty($project->technologies) ? implode(",", $project->technologies) : "Not specified";
+
+    // Build output
+    $output = '<div class="portfolio-project">';
+    $output .= '<div class="project-description">';
+    //Filters dangerous HTML/JavaScript (security) and Renders any text formats (like WYSIWYG content)
+    $output .= check_markup($project->description);
+    $output .= '</div>';
+    $output .= '<div class="project-meta">';
+    $output .= '<p><strong>Technologies:</strong> ' . check_plain($technologies) . '</p>';
+    $output .= '</div>';
+    $output .= '</div>';
+
+    return $output;
+}
+
+// /**
+//  * Temporary function to create test data
+//  * Run once by visiting: /create-test-project
+//  */
+// function portfolio_create_test()
+// {
+//     $project = portfolio_project_create(array(
+//         'title' => 'My First Drupal Project',
+//         'description' => '<p>This is a test project I built while learning Drupal 7.</p>',
+//         'technologies' => array('Drupal 7', 'PHP', 'jQuery'),
+//     ));
+
+//     if (portfolio_project_save($project)) {
+//         drupal_set_message('Test project created with ID: ' . $project->pid);
+//     }
+
+//     drupal_goto('projects');
+// }
+
+
+
+/**
+ * Generate fake projects for testing
+ */
+function portfolio_generate_projects($num = 5)
+{
+    $technologies = array('Drupal', 'PHP', 'JavaScript', 'jQuery', 'HTML', 'CSS');
+    $titles = array('E-commerce Site', 'Blog Platform', 'Portfolio', 'CRM System', 'API Integration');
+
+    for ($i = 0; $i < $num; $i++) {
+        $project = portfolio_project_create(array(
+            'title' => $titles[array_rand($titles)] . ' ' . rand(1, 100),
+            'description' => 'This is a sample project description.',
+            'technologies' => array_rand(array_flip($technologies), rand(2, 4)),
+        ));
+
+        portfolio_project_save($project);
+    }
+
+    drupal_set_message(t('Generated @num projects.', array('@num' => $num)));
+}
+
+
+//Admin listing page
+function portfolio_admin_list()
+{
+    $header = array(
+        'title' => t('Title'),
+        'technologies' => t('Technologies'),
+        'created' => t('Created'),
+        'operations' => t('Operations'),
+    );
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'portfolio_project')
+        ->propertyOrderBy('created', 'DESC');
+
+    $result = $query->execute();
+
+    $rows = array();
+    if (!empty($result['portfolio_project'])) {
+        $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
+
+        foreach ($projects as $pid => $project) {
+            $rows[] = array(
+                'title' => l($project->title, 'admin/content/projects/' . $pid . '/edit'),
+                'technologies' => implode(', ', $project->technologies),
+                'created' => format_date($project->created, 'short'),
+                'operations' => l(t('edit'), 'admin/content/projects/' . $pid . '/edit') . ' | ' .
+                    l(t('delete'), 'admin/content/projects/' . $pid . '/delete'),
+            );
+        }
+    }
+
+    return theme('table', array('header' => $header, 'rows' => $rows));
+}
+
+
+// Project form (Add/Edit)
+function portfolio_project_form($form, &$form_state, $project = NULL)
+{
+    if ($project) {
+        $form_state['project'] = $project;
+        $form['pid'] = array(
+            '#type' => 'value',
+            '#value' => $project->pid,
+        );
+    }
+
+    $form['title'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Project Title'),
+        '#required' => TRUE,
+        '#default_value' => $project ? $project->title : '',
+    );
+
+    $form['description'] = array(
+        '#type' => 'text_format',
+        '#title' => t('Description'),
+        '#format' => 'full_html',
+        '#default_value' => $project ? $project->description : '',
+    );
+
+    $form['technologies'] = array(
+        '#type' => 'textarea',
+        '#title' => t('Technologies Used'),
+        '#description' => t('Enter one technology per line'),
+        '#default_value' => $project ? implode("\n", $project->technologies) : '',
+    );
+
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save Project'),
+    );
+
+    return $form;
+}
+
+
+//Form validation
+function portfolio_project_form_validate($form, &$form_state)
+{
+    if (empty($form_state['values']['title'])) {
+        form_set_error('title', t('Title is required'));
+    }
+}
+
+/**
+ * Form submit handler
+ */
+function portfolio_project_form_submit($form, &$form_state)
+{
+    $values = $form_state['values'];
+
+    // Convert technologies textarea to array
+    $technologies = array_filter(array_map('trim', explode("\n", $values['technologies'])));
+
+    if (isset($form_state['project'])) {
+        $project = $form_state['project'];
+    } else {
+        $project = portfolio_project_create();
+    }
+
+    $project->title = $values['title'];
+    $project->description = $values['description']['value'];
+    $project->technologies = $technologies;
+
+    if (portfolio_project_save($project)) {
+        drupal_set_message(t('Project saved successfully.'));
+        $form_state['redirect'] = 'admin/content/projects';
+    } else {
+        drupal_set_message(t('Error saving project.'), 'error');
+    }
+}
+
+/**
+ * 🆕 Delete confirmation form
+ */
+function portfolio_project_delete_confirm($form, &$form_state, $project)
+{
+    $form_state['project'] = $project;
+
+    return confirm_form(
+        $form,
+        t('Are you sure you want to delete %title?', array('%title' => $project->title)),
+        'admin/content/projects',
+        t('This action cannot be undone.'),
+        t('Delete'),
+        t('Cancel')
+    );
+}
+
+/**
+ * 🆕 Delete submit handler
+ */
+function portfolio_project_delete_confirm_submit($form, &$form_state)
+{
+    $project = $form_state['project'];
+    entity_delete('portfolio_project', $project->pid);
+    drupal_set_message(t('Project deleted.'));
+    $form_state['redirect'] = 'admin/content/projects';
+}
+
+
+
+//dashboard
+/**
+ * Implements hook_block_info()
+ */
+function portfolio_block_info()
+{
+    $blocks = array();
+
+    $blocks['portfolio_stats'] = array(
+        'info' => t('Portfolio Statistics'),
+        'cache' => DRUPAL_CACHE_PER_ROLE,
+    );
+
+    $blocks['portfolio_recent'] = array(
+        'info' => t('Recent Projects'),
+        'cache' => DRUPAL_CACHE_PER_ROLE,
+    );
+
+    return $blocks;
+}
+
+/**
+ * Implements hook_block_view()
+ */
+function portfolio_block_view($delta = '')
+{
+    $block = array();
+
+    switch ($delta) {
+        case 'portfolio_stats':
+            $query = new EntityFieldQuery();
+            $query->entityCondition('entity_type', 'portfolio_project');
+            $result = $query->execute();
+
+            $count = !empty($result['portfolio_project']) ? count($result['portfolio_project']) : 0;
+
+            // Get technologies count
+            $tech_count = 0;
+            if (!empty($result['portfolio_project'])) {
+                $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
+                foreach ($projects as $project) {
+                    $tech_count += count($project->technologies);
+                }
+            }
+
+            $block['subject'] = t('Portfolio Stats');
+            $block['content'] = array(
+                '#theme' => 'item_list',
+                '#items' => array(
+                    t('Total Projects: @count', array('@count' => $count)),
+                    t('Technologies Used: @count', array('@count' => $tech_count)),
+                ),
+            );
+            break;
+
+        case 'portfolio_recent':
+            $query = new EntityFieldQuery();
+            $query->entityCondition('entity_type', 'portfolio_project')
+                ->propertyOrderBy('created', 'DESC')
+                ->range(0, 5);
+
+            $result = $query->execute();
+
+            if (empty($result['portfolio_project'])) {
+                $block['content'] = t('No recent projects.');
+                return $block;
+            }
+
+            $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
+
+            $items = array();
+            foreach ($projects as $project) {
+                $items[] = l($project->title, 'projects/' . $project->pid);
+            }
+
+            $block['subject'] = t('Recent Projects');
+            $block['content'] = array(
+                '#theme' => 'item_list',
+                '#items' => $items,
+            );
+            break;
+    }
+
+    return $block;
+}

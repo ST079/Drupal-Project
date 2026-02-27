@@ -1,0 +1,15 @@
+name = Portfolio Theme
+description = Custom theme for portfolio projects
+core = 7.x
+engine = phptemplate
+
+; Stylesheets
+stylesheets[all][] = css/styles.css
+
+; JavaScript
+scripts[] = js/portfolio.js
+
+regions[header] = Header
+regions[content] = Content
+regions[sidebar] = Sidebar
+regions[footer] = Footer
