@@ -438,75 +438,43 @@ function portfolio_block_info()
         'cache' => DRUPAL_CACHE_PER_ROLE,
     );
 
-    $blocks['portfolio_recent'] = array(
-        'info' => t('Recent Projects'),
-        'cache' => DRUPAL_CACHE_PER_ROLE,
-    );
-
     return $blocks;
 }
 
 /**
  * Implements hook_block_view()
  */
-function portfolio_block_view($delta = '')
+function portfolio_block_view()
 {
     $block = array();
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'portfolio_project');
+    $result = $query->execute();
 
-    switch ($delta) {
-        case 'portfolio_stats':
-            $query = new EntityFieldQuery();
-            $query->entityCondition('entity_type', 'portfolio_project');
-            $result = $query->execute();
+    $count = !empty($result['portfolio_project']) ? count($result['portfolio_project']) : 0;
 
-            $count = !empty($result['portfolio_project']) ? count($result['portfolio_project']) : 0;
-
-            // Get technologies count
-            $tech_count = 0;
-            if (!empty($result['portfolio_project'])) {
-                $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
-                foreach ($projects as $project) {
-                    $tech_count += count($project->technologies);
-                }
+    // Get technologies count
+    $tech_count = 0;
+    $tech_list = array();
+    if (!empty($result['portfolio_project'])) {
+        $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
+        foreach ($projects as $project) {
+            if (!empty($project->technologies)) {
+                $tech_list = array_merge($tech_list, $project->technologies);
             }
-
-            $block['subject'] = t('Portfolio Stats');
-            $block['content'] = array(
-                '#theme' => 'item_list',
-                '#items' => array(
-                    t('Total Projects: @count', array('@count' => $count)),
-                    t('Technologies Used: @count', array('@count' => $tech_count)),
-                ),
-            );
-            break;
-
-        case 'portfolio_recent':
-            $query = new EntityFieldQuery();
-            $query->entityCondition('entity_type', 'portfolio_project')
-                ->propertyOrderBy('created', 'DESC')
-                ->range(0, 5);
-
-            $result = $query->execute();
-
-            if (empty($result['portfolio_project'])) {
-                $block['content'] = t('No recent projects.');
-                return $block;
-            }
-
-            $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
-
-            $items = array();
-            foreach ($projects as $project) {
-                $items[] = l($project->title, 'projects/' . $project->pid);
-            }
-
-            $block['subject'] = t('Recent Projects');
-            $block['content'] = array(
-                '#theme' => 'item_list',
-                '#items' => $items,
-            );
-            break;
+        }
     }
 
+    $tech_list = array_unique($tech_list);
+    $tech_count = count($tech_list);
+
+    $block['subject'] = t('Portfolio Stats');
+    $block['content'] = array(
+        '#theme' => 'item_list',
+        '#items' => array(
+            t('Total Projects: @count', array('@count' => $count)),
+            t('Technologies Used: @count', array('@count' => $tech_count)),
+        ),
+    );
     return $block;
 }
