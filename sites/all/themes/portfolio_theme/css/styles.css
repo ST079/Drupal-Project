@@ -605,29 +605,285 @@ footer p {
   color: white;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .hero-content {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .profile-image-container {
-    margin-right: 0;
-    margin-bottom: 20px;
-  }
-  
-  .about-grid {
-    grid-template-columns: 1fr;
-    gap: 30px;
-  }
-  
-  .project-cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .tech-items {
-    grid-template-columns: 1fr 1fr;
-  }
+
+/* ========================================
+   DASHBOARD STYLES
+======================================== */
+
+.portfolio-dashboard {
+  padding: 20px;
 }
 
+.dashboard-header {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #3498db;
+}
+
+.dashboard-header h2 {
+  color: #2c3e50;
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+/* Statistics Cards */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #3498db;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.action-card {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+.action-card a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.action-card .stat-label {
+  color: rgba(255,255,255,0.9);
+}
+
+/* Two Column Layout */
+.dashboard-two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.dashboard-section {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.dashboard-section h3 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+/* Dashboard Tables */
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-table th {
+  text-align: left;
+  padding: 10px;
+  background: #f8f9fa;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.dashboard-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.dashboard-table tr:hover {
+  background: #f8f9fa;
+}
+
+/* Technology List */
+.tech-list {
+  list-style: none;
+  padding: 0;
+}
+
+.tech-list li {
+  margin-bottom: 15px;
+}
+
+.tech-name {
+  display: inline-block;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.tech-count {
+  float: right;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #ecf0f1;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+
+.progress-bar div {
+  height: 100%;
+  background: linear-gradient(90deg, #3498db, #2ecc71);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Quick Actions */
+.quick-actions {
+  list-style: none;
+  padding: 0;
+}
+
+.quick-actions li {
+  margin-bottom: 10px;
+}
+
+.quick-actions a {
+  display: block;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border-radius: 5px;
+  color: #2c3e50;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.quick-actions a:hover {
+  background: #3498db;
+  color: white;
+  transform: translateX(5px);
+}
+
+.view-all {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.view-all a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.view-all a:hover {
+  text-decoration: underline;
+}
+
+/* Portfolio Stats Block */
+.portfolio-stats-block {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px;
+
+  border-radius: 10px;
+  color: white;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Recent Projects Block */
+.recent-projects-block {
+  padding: 15px;
+}
+
+.recent-project-item {
+  padding: 15px;
+  margin-bottom: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.recent-project-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.recent-project-item h4 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+}
+
+.recent-project-item p {
+  margin: 0 0 10px 0;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.project-tech-tags {
+  margin: 10px 0;
+}
+
+.tech-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  margin: 0 5px 5px 0;
+  background: #e0e0e0;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  color: #2c3e50;
+}
+
+.recent-project-item a {
+  display: inline-block;
+  color: #3498db;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.recent-project-item a:hover {
+  text-decoration: underline;
+}

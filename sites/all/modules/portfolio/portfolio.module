@@ -126,6 +126,15 @@ function portfolio_menu()
         'weight' => 10,
     );
 
+    $items['dashboard'] = array(
+        'title' => 'Portfolio Dashboard',
+        'description' => 'View portfolio statistics and insights',
+        'page callback' => 'portfolio_dashboard_page',
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_NORMAL_ITEM,
+        'weight' => 0,
+    );
+
     // Add project form
     $items['admin/content/projects/add'] = array(
         'title' => 'Add Project',
@@ -425,7 +434,145 @@ function portfolio_project_delete_confirm_submit($form, &$form_state)
 
 
 
-//dashboard
+/**
+ * 🆕 DASHBOARD PAGE - Shows overview statistics
+ */
+function portfolio_dashboard_page()
+{
+
+    // Get all projects count
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'portfolio_project');
+    $result = $query->execute();
+    $total_projects = !empty($result['portfolio_project']) ? count($result['portfolio_project']) : 0;
+
+    // Get recent projects (last 2)
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'portfolio_project')
+        ->propertyOrderBy('created', 'DESC');
+    $recent_result = $query->execute();
+
+    $recent_projects = array();
+    if (!empty($recent_result['portfolio_project'])) {
+        $recent_projects = entity_load('portfolio_project', array_keys($recent_result['portfolio_project']));
+    }
+
+    // Get technology statistics
+    $all_tech = array();
+    if (!empty($result['portfolio_project'])) {
+        $all_projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
+        foreach ($all_projects as $project) {
+            if (!empty($project->technologies)) {
+                $all_tech = array_merge($all_tech, $project->technologies);
+            }
+        }
+        $techs = array_unique($all_tech); // Get unique technologies
+    }
+
+    // Count frequency of each technology
+    $tech_counts = array_count_values($all_tech);
+    arsort($tech_counts); // Sort by most used
+    $top_tech = array_slice($tech_counts, 0, 5, true); // Top 5
+
+    // Start building HTML
+    $output = '<div class="portfolio-dashboard">';
+
+    // Welcome section
+    $output .= '<div class="dashboard-header">';
+    $output .= '<h2>Welcome to your Portfolio Dashboard</h2>';
+    $output .= '<p>Here\'s what\'s happening with your portfolio.</p>';
+    $output .= '</div>';
+
+    // STATISTICS CARDS
+    $output .= '<div class="dashboard-stats">';
+
+    // Card 1: Total Projects
+    $output .= '<div class="stat-card">';
+    $output .= '<div class="stat-icon">📁</div>';
+    $output .= '<div class="stat-number">' . $total_projects . '</div>';
+    $output .= '<div class="stat-label">Total Projects</div>';
+    $output .= '</div>';
+
+    // Card 2: Technologies Used
+    $output .= '<div class="stat-card">';
+    $output .= '<div class="stat-icon">🔧</div>';
+    $output .= '<div class="stat-number">' . count($techs) . '</div>';
+    $output .= '<div class="stat-label">Technologies Used</div>';
+    $output .= '</div>';
+    $output .= '</div>';
+
+    $output .= '<div>';
+    // Recent Projects
+    $output .= '<div class="dashboard-left">';
+    $output .= '<div class="dashboard-section">';
+    $output .= '<h3>📋 Recent Projects</h3>';
+
+    if (!empty($recent_projects)) {
+        $output .= '<table class="dashboard-table">';
+        $output .= '<thead><tr><th>Title</th><th>Added</th><th>Actions</th></tr></thead>';
+        $output .= '<tbody>';
+
+        foreach ($recent_projects as $project) {
+            $output .= '<tr>';
+            $output .= '<td>' . check_plain($project->title) . '</td>';
+            $output .= '<td>' . format_date($project->created, 'short') . '</td>';
+            $output .= '<td>';
+            $output .= l('Edit', 'admin/content/projects/' . $project->pid . '/edit');
+            $output .= ' | ';
+            $output .= l('View', 'projects/' . $project->pid);
+            $output .= '</td>';
+            $output .= '</tr>';
+        }
+
+        $output .= '</tbody></table>';
+    } else {
+        $output .= '<p>No projects yet. <a href="/admin/content/projects/add">Create your first project!</a></p>';
+    }
+    $output .= '</div>'; // Close section
+    $output .= '</div>';
+    $output .= '</div>';
+
+
+    $output .= '<div class="dashboard-two-column">';
+    $output .= '<div class="dashboard-left">';
+    $output .= '<div class="dashboard-section">';
+    $output .= '<h3>🔝 Most Used Technologies</h3>';
+
+    if (!empty($top_tech)) {
+        $output .= '<ul class="tech-list">';
+        foreach ($top_tech as $tech => $count) {
+            $percentage = round(($count / $total_projects) * 100);
+            $output .= '<li>';
+            $output .= '<span class="tech-name">' . check_plain($tech) . '</span>';
+            $output .= '<span class="tech-count">' . $count . ' project' . ($count > 1 ? 's' : '') . '</span>';
+            $output .= '<div class="progress-bar"><div style="width: ' . $percentage . '%"></div></div>';
+            $output .= '</li>';
+        }
+        $output .= '</ul>';
+    } else {
+        $output .= '<p>No technologies added yet.</p>';
+    }
+
+    $output .= '</div>'; // Close section
+    $output .= '</div>';
+
+    // Quick Actions
+    $output .= '<div class="dashboard-right">';
+    $output .= '<div class="dashboard-section">';
+    $output .= '<h3>⚡ Quick Actions</h3>';
+    $output .= '<ul class="quick-actions">';
+    $output .= '<li>' . l('➕ Add New Project', 'admin/content/projects/add') . '</li>';
+    $output .= '<li>' . l('👁️ View Public Portfolio', 'projects') . '</li>';
+    $output .= '</ul>';
+    $output .= '</div>'; // Close section
+
+    $output .= '</div>'; // Close dashboard-right
+    $output .= '</div>'; // Close two-column
+    $output .= '</div>'; // Close dashboard
+
+    return $output;
+}
+
 /**
  * Implements hook_block_info()
  */
@@ -437,6 +584,10 @@ function portfolio_block_info()
         'info' => t('Portfolio Statistics'),
         'cache' => DRUPAL_CACHE_PER_ROLE,
     );
+    $blocks['portfolio_recent'] = array(
+        'info' => t('Recent Projects'),
+        'cache' => DRUPAL_CACHE_PER_ROLE,
+    );
 
     return $blocks;
 }
@@ -444,37 +595,96 @@ function portfolio_block_info()
 /**
  * Implements hook_block_view()
  */
-function portfolio_block_view()
-{
-    $block = array();
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'portfolio_project');
-    $result = $query->execute();
-
-    $count = !empty($result['portfolio_project']) ? count($result['portfolio_project']) : 0;
-
-    // Get technologies count
-    $tech_count = 0;
-    $tech_list = array();
-    if (!empty($result['portfolio_project'])) {
+function portfolio_block_view($delta = '') {
+  $block = array();
+  
+  switch ($delta) {
+    case 'portfolio_stats':
+      $block['subject'] = t('Portfolio Statistics');
+      
+      // Get project count
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'portfolio_project');
+      $result = $query->execute();
+      $count = !empty($result['portfolio_project']) ? count($result['portfolio_project']) : 0;
+      
+      // Get technology stats
+      $tech_count = 0;
+      $all_tech = array();
+      if (!empty($result['portfolio_project'])) {
         $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
         foreach ($projects as $project) {
-            if (!empty($project->technologies)) {
-                $tech_list = array_merge($tech_list, $project->technologies);
-            }
+          if (!empty($project->technologies)) {
+            $tech_count += count($project->technologies);
+            $all_tech = array_merge($all_tech, $project->technologies);
+          }
         }
-    }
-
-    $tech_list = array_unique($tech_list);
-    $tech_count = count($tech_list);
-
-    $block['subject'] = t('Portfolio Stats');
-    $block['content'] = array(
-        '#theme' => 'item_list',
-        '#items' => array(
-            t('Total Projects: @count', array('@count' => $count)),
-            t('Technologies Used: @count', array('@count' => $tech_count)),
-        ),
-    );
-    return $block;
+      }
+      
+      $unique_tech = count(array_unique($all_tech));
+      
+      // Build HTML
+      $html = '<div class="portfolio-stats-block">';
+      $html .= '<div class="stat-item">';
+      $html .= '<span class="stat-number">' . $count . '</span>';
+      $html .= '<span class="stat-label">Total Projects</span>';
+      $html .= '</div>';
+      $html .= '<div class="stat-item">';
+      $html .= '<span class="stat-number">' . $unique_tech . '</span>';
+      $html .= '<span class="stat-label">Technologies Used</span>';
+      $html .= '</div>';
+      $html .= '</div>';
+      
+      $block['content'] = array('#markup' => $html);
+      break;
+      
+    case 'portfolio_recent':
+      $block['subject'] = t('Recent Projects');
+      
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'portfolio_project')
+            ->propertyOrderBy('created', 'DESC')
+            ->range(0, 2);
+      
+      $result = $query->execute();
+      
+      if (empty($result['portfolio_project'])) {
+        $block['content'] = array(
+          '#markup' => '<p>No projects yet. <a href="/admin/content/projects/add">Add one!</a></p>',
+        );
+        return $block;
+      }
+      
+      $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
+      
+      $html = '<div class="recent-projects-block">';
+      foreach ($projects as $project) {
+        $description = strip_tags($project->description);
+        if (strlen($description) > 80) {
+          $description = substr($description, 0, 80) . '...';
+        }
+        
+        $html .= '<div class="recent-project-item">';
+        $html .= '<h4>' . check_plain($project->title) . '</h4>';
+        $html .= '<p>' . check_plain($description) . '</p>';
+        
+        if (!empty($project->technologies)) {
+          $html .= '<div class="project-tech-tags">';
+          foreach (array_slice($project->technologies, 0, 3) as $tech) {
+            $html .= '<span class="tech-tag">' . check_plain($tech) . '</span>';
+          }
+          $html .= '</div>';
+        }
+        
+        $html .= '<a href="' . url('projects/' . $project->pid) . '">View →</a>';
+        $html .= '</div>';
+      }
+      $html .= '<p class="view-all">' . l('View All Projects →', 'projects') . '</p>';
+      $html .= '</div>';
+      
+      $block['content'] = array('#markup' => $html);
+      break;
+  }
+  
+  return $block;
 }
