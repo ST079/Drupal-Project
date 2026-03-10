@@ -89,6 +89,20 @@
 |--------|---------|
 | **Devel** | Development and testing |
 | **Views** | Advanced displays |
-| **Pathauto** | Clean URLs |
 
 ---
+
+# 📁 Module Structure
+```
+portfolio/                      # Main module folder
+│
+├── portfolio.info              # Module definition file
+├── portfolio.module            # Main module code
+├── portfolio.install           # Database schema
+├── portfolio.permissions.inc   # Permission definitions
+│
+├── includes/                    # Additional PHP files
+│   └── portfolio.entity.inc    # Entity class definition
+│
+└── README.md                    # This documentation file
+```

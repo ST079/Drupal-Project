@@ -42,6 +42,8 @@ function portfolio_project_create($values = array())
         'title' => '',
         'description' => '',
         'technologies' => array(),
+        "github_link" => '',
+        "live_url" => '',
         'created' => REQUEST_TIME, //Drupal constant for current timestamp
     );
     return entity_create("portfolio_project", $values); //Entity API function to create new entity
@@ -116,17 +118,7 @@ function portfolio_menu()
     //     'type' => MENU_CALLBACK,
     // );
 
-    // Admin section for projects
-    $items['admin/content/projects'] = array(
-        'title' => 'Projects',
-        'description' => 'Manage your portfolio projects',
-        'page callback' => 'portfolio_admin_list',
-        'access arguments' => array('administer site configuration'),
-        'type' => MENU_NORMAL_ITEM,
-        'weight' => 10,
-    );
-
-    $items['dashboard'] = array(
+    $items['mydashboard'] = array(
         'title' => 'Portfolio Dashboard',
         'description' => 'View portfolio statistics and insights',
         'page callback' => 'portfolio_dashboard_page',
@@ -163,6 +155,147 @@ function portfolio_menu()
     );
 
     return $items;
+}
+
+//dashboard
+function portfolio_dashboard_page()
+{
+    // Get all projects count
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'portfolio_project');
+    $result = $query->execute();
+    $total_projects = !empty($result['portfolio_project']) ? count($result['portfolio_project']) : 0;
+
+    //table
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'portfolio_project');
+    $query->pager(5); // 5 items per page for the table
+    $paginated_result = $query->execute();
+
+    $table_projects = array();
+    if (!empty($paginated_result['portfolio_project'])) {
+        $table_projects = entity_load('portfolio_project', array_keys($paginated_result['portfolio_project']));
+    }
+
+    // Get technology statistics
+    $all_tech = array();
+    $techs = array();
+    $all_projects = array();
+    if (!empty($result['portfolio_project'])) {
+        $all_projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
+        foreach ($all_projects as $project) {
+            if (!empty($project->technologies)) {
+                $all_tech = array_merge($all_tech, $project->technologies);
+            }
+        }
+        $techs = array_unique($all_tech); // Get unique technologies
+    }
+
+    // Count frequency of each technology
+    $tech_counts = array_count_values($all_tech);
+    arsort($tech_counts); // Sort by most used
+    $top_tech = array_slice($tech_counts, 0, 5, true); // Top 5
+
+    // Start building HTML
+    $output = '<div class="portfolio-dashboard">';
+
+    // Welcome section
+    $output .= '<div class="dashboard-header">';
+    $output .= '<p>Here\'s what\'s happening with your portfolio.</p>';
+    $output .= '</div>';
+
+    // STATISTICS CARDS
+    $output .= '<div class="dashboard-stats">';
+
+    // Card 1: Total Projects
+    $output .= '<div class="stat-card">';
+    $output .= '<div class="stat-icon">📁</div>';
+    $output .= '<div class="stat-number">' . $total_projects . '</div>';
+    $output .= '<div class="stat-label">Total Projects</div>';
+    $output .= '</div>';
+
+    // Card 2: Technologies Used
+    $output .= '<div class="stat-card">';
+    $output .= '<div class="stat-icon">🔧</div>';
+    $output .= '<div class="stat-number">' . count($techs) . '</div>';
+    $output .= '<div class="stat-label">Technologies Used</div>';
+    $output .= '</div>';
+    $output .= '</div>';
+    $output .= '<div>';
+
+    // all Projects
+    $output .= '<div class="dashboard-left">';
+    $output .= '<div class="dashboard-section">';
+    $output .= '<h3>📋 My Projects</h3>';
+
+    if (!empty($table_projects)) {
+        $output .= '<table class="dashboard-table">';
+        $output .= '<thead><tr><th>Title</th><th>Added</th><th>Actions</th></tr></thead>';
+        $output .= '<tbody>';
+
+        foreach ($table_projects as $project) {
+            $output .= '<tr>';
+            $output .= '<td>' . check_plain($project->title) . '</td>';
+            $output .= '<td>' . format_date($project->created, 'short') . '</td>';
+            $output .= '<td>';
+            $output .= l('Edit', 'admin/content/projects/' . $project->pid . '/edit');
+            $output .= ' | ';
+            $output .= l('View', 'projects/' . $project->pid);
+            $output .= ' | ';
+            $output .= l('Delete', 'admin/content/projects/' . $project->pid . '/delete');
+            $output .= '</td>';
+            $output .= '</tr>';
+        }
+        $output .= '</tbody>';
+        $output .= '</table>';
+
+    } else {
+        $output .= '<p>No projects yet. <a href="/admin/content/projects/add">Create your first project!</a></p>';
+    }
+    $output .= theme('pager');
+    $output .= '</div>'; // Close section
+    $output .= '</div>';
+    $output .= '</div>';
+
+
+    $output .= '<div class="dashboard-two-column">';
+    $output .= '<div class="dashboard-left">';
+    $output .= '<div class="dashboard-section">';
+    $output .= '<h3>🔝 Most Used Technologies</h3>';
+
+    if (!empty($top_tech)) {
+        $output .= '<ul class="tech-list">';
+        foreach ($top_tech as $tech => $count) {
+            $percentage = round(($count / $total_projects) * 100);
+            $output .= '<li>';
+            $output .= '<span class="tech-name">' . check_plain($tech) . '</span>';
+            $output .= '<span class="tech-count">' . $count . ' project' . ($count > 1 ? 's' : '') . '</span>';
+            $output .= '<div class="progress-bar"><div style="width: ' . $percentage . '%"></div></div>';
+            $output .= '</li>';
+        }
+        $output .= '</ul>';
+    } else {
+        $output .= '<p>No technologies added yet.</p>';
+    }
+
+    $output .= '</div>'; // Close section
+    $output .= '</div>';
+
+    // Quick Actions
+    $output .= '<div class="dashboard-right">';
+    $output .= '<div class="dashboard-section">';
+    $output .= '<h3>⚡ Quick Actions</h3>';
+    $output .= '<ul class="quick-actions">';
+    $output .= '<li>' . l('➕ Add New Project', 'admin/content/projects/add') . '</li>';
+    $output .= '<li>' . l('👁️ View Public Portfolio', 'projects') . '</li>';
+    $output .= '</ul>';
+    $output .= '</div>'; // Close section
+
+    $output .= '</div>'; // Close dashboard-right
+    $output .= '</div>'; // Close two-column
+    $output .= '</div>'; // Close dashboard
+
+    return $output;
 }
 
 
@@ -309,12 +442,14 @@ function portfolio_project_view($project)
     $output .= '<p><strong>Technologies:</strong> ' . check_plain($technologies) . '</p>';
     $output .= '</div>';
     $output .= '<div>';
+    $output .= '<div class="project-links">';
     if (!empty($project->github_link)) {
-        $output .= '<button class="social-link" href="' . check_plain($project->github_link) . '" target="_blank" style="margin-right: 15px;">View on GitHub</button>';
+        $output .= '<a class="social-link github" href="' . check_plain($project->github_link) . '" target="_blank">🐙 GitHub</a>';
     }
     if (!empty($project->live_url)) {
-        $output .= '<button class="social-link" href="' . check_plain($project->live_url) . '" target="_blank">View Live</button>';
+        $output .= '<a class="social-link live" href="' . check_plain($project->live_url) . '" target="_blank">🚀 Live Site</a>';
     }
+    $output .= '</div>';
     $output .= '</div>';
     $output .= '</div>';
 
@@ -355,47 +490,14 @@ function portfolio_generate_projects($num = 5)
             'title' => $titles[array_rand($titles)] . ' ' . rand(1, 100),
             'description' => 'This is a sample project description.',
             'technologies' => array_rand(array_flip($technologies), rand(2, 4)),
+            'github_link' => '',
+            'live_url' => '',
         ));
 
         portfolio_project_save($project);
     }
 
     drupal_set_message(t('Generated @num projects.', array('@num' => $num)));
-}
-
-
-//Admin listing page
-function portfolio_admin_list()
-{
-    $header = array(
-        'title' => t('Title'),
-        'technologies' => t('Technologies'),
-        'created' => t('Created'),
-        'operations' => t('Operations'),
-    );
-
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'portfolio_project')
-        ->propertyOrderBy('created', 'DESC');
-
-    $result = $query->execute();
-
-    $rows = array();
-    if (!empty($result['portfolio_project'])) {
-        $projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
-
-        foreach ($projects as $pid => $project) {
-            $rows[] = array(
-                'title' => l($project->title, 'admin/content/projects/' . $pid . '/edit'),
-                'technologies' => implode(', ', $project->technologies),
-                'created' => format_date($project->created, 'short'),
-                'operations' => l(t('edit'), 'admin/content/projects/' . $pid . '/edit') . ' | ' .
-                    l(t('delete'), 'admin/content/projects/' . $pid . '/delete'),
-            );
-        }
-    }
-
-    return theme('table', array('header' => $header, 'rows' => $rows));
 }
 
 
@@ -420,7 +522,7 @@ function portfolio_project_form($form, &$form_state, $project = NULL)
     $form['description'] = array(
         '#type' => 'text_format',
         '#title' => t('Description'),
-        '#format' => 'full_html',
+        '#format' => 'plain_text',
         '#default_value' => $project ? $project->description : '',
     );
 
@@ -430,17 +532,16 @@ function portfolio_project_form($form, &$form_state, $project = NULL)
         '#description' => t('Enter one technology per line'),
         '#default_value' => $project ? implode("\n", $project->technologies) : '',
     );
-
     $form['github_link'] = array(
         '#type' => 'textfield',
         '#title' => t('GitHub Link'),
-        '#default_value' => $project ? $project->github_link : '',
+        '#default_value' => isset($project->github_link) ? $project->github_link : '',
     );
 
     $form['live_url'] = array(
         '#type' => 'textfield',
         '#title' => t('Live URL'),
-        '#default_value' => $project ? $project->live_url : '',
+        '#default_value' => isset($project->live_url) ? $project->live_url : '',
     );
 
     $form['submit'] = array(
@@ -479,6 +580,8 @@ function portfolio_project_form_submit($form, &$form_state)
     $project->title = $values['title'];
     $project->description = $values['description']['value'];
     $project->technologies = $technologies;
+    $project->github_link = $values['github_link'];
+    $project->live_url = $values['live_url'];
 
     if (portfolio_project_save($project)) {
         drupal_set_message(t('Project saved successfully.'));
@@ -533,12 +636,6 @@ function portfolio_block_info()
         'info' => t('Recent Projects'),
         'cache' => DRUPAL_CACHE_PER_ROLE,
     );
-
-    $blocks['portfolio_dashboard'] = array(
-        'info' => t('Portfolio Dashboard'),
-        'cache' => DRUPAL_CACHE_PER_ROLE,
-    );
-
 
 
     return $blocks;
@@ -631,146 +728,6 @@ function portfolio_block_view($delta = '')
             }
             $html .= '<p class="view-all">' . l('View All Projects →', 'projects') . '</p>';
             $html .= '</div>';
-            $block['content'] = array('#markup' => $html);
-            break;
-
-        case 'portfolio_dashboard':
-            $block['subject'] = t('Portfolio Dashboard');
-            // Get all projects count
-            $query = new EntityFieldQuery();
-            $query->entityCondition('entity_type', 'portfolio_project');
-            $result = $query->execute();
-            $total_projects = !empty($result['portfolio_project']) ? count($result['portfolio_project']) : 0;
-
-            //table
-            $query = new EntityFieldQuery();
-            $query->entityCondition('entity_type', 'portfolio_project')
-                ->pager(5);
-            $paginated_result = $query->execute();
-
-            $table_projects = array();
-            if (!empty($paginated_result['portfolio_project'])) {
-                $table_projects = entity_load('portfolio_project', array_keys($paginated_result['portfolio_project']));
-            }
-
-            // Get technology statistics
-            $all_tech = array();
-            $techs = array();
-            $all_projects = array();
-            if (!empty($result['portfolio_project'])) {
-                $all_projects = entity_load('portfolio_project', array_keys($result['portfolio_project']));
-                foreach ($all_projects as $project) {
-                    if (!empty($project->technologies)) {
-                        $all_tech = array_merge($all_tech, $project->technologies);
-                    }
-                }
-                $techs = array_unique($all_tech); // Get unique technologies
-            }
-
-            // Count frequency of each technology
-            $tech_counts = array_count_values($all_tech);
-            arsort($tech_counts); // Sort by most used
-            $top_tech = array_slice($tech_counts, 0, 5, true); // Top 5
-
-            // Start building HTML
-            $html = '<div class="portfolio-dashboard">';
-
-            // Welcome section
-            $html .= '<div class="dashboard-header">';
-            $html .= '<p>Here\'s what\'s happening with your portfolio.</p>';
-            $html .= '</div>';
-
-            // STATISTICS CARDS
-            $html .= '<div class="dashboard-stats">';
-
-            // Card 1: Total Projects
-            $html .= '<div class="stat-card">';
-            $html .= '<div class="stat-icon">📁</div>';
-            $html .= '<div class="stat-number">' . $total_projects . '</div>';
-            $html .= '<div class="stat-label">Total Projects</div>';
-            $html .= '</div>';
-
-            // Card 2: Technologies Used
-            $html .= '<div class="stat-card">';
-            $html .= '<div class="stat-icon">🔧</div>';
-            $html .= '<div class="stat-number">' . count($techs) . '</div>';
-            $html .= '<div class="stat-label">Technologies Used</div>';
-            $html .= '</div>';
-            $html .= '</div>';
-            $html .= '<div>';
-
-            // all Projects
-            $html .= '<div class="dashboard-left">';
-            $html .= '<div class="dashboard-section">';
-            $html .= '<h3>📋 My Projects</h3>';
-
-            if (!empty($table_projects)) {
-                $html .= '<table class="dashboard-table">';
-                $html .= '<thead><tr><th>Title</th><th>Added</th><th>Actions</th></tr></thead>';
-                $html .= '<tbody>';
-
-                foreach ($table_projects as $project) {
-                    $html .= '<tr>';
-                    $html .= '<td>' . check_plain($project->title) . '</td>';
-                    $html .= '<td>' . format_date($project->created, 'short') . '</td>';
-                    $html .= '<td>';
-                    $html .= l('Edit', 'admin/content/projects/' . $project->pid . '/edit');
-                    $html .= ' | ';
-                    $html .= l('View', 'projects/' . $project->pid);
-                    $html .= ' | ';
-                    $html .= l('Delete', 'admin/content/projects/' . $project->pid . '/delete');
-                    $html .= '</td>';
-                    $html .= '</tr>';
-                }
-                $html .= '</tbody>';
-                $html .= '</table>';
-
-            } else {
-                $html .= '<p>No projects yet. <a href="/admin/content/projects/add">Create your first project!</a></p>';
-            }
-            $html .= theme('pager');
-            $html .= '</div>'; // Close section
-            $html .= '</div>';
-            $html .= '</div>';
-
-
-            $html .= '<div class="dashboard-two-column">';
-            $html .= '<div class="dashboard-left">';
-            $html .= '<div class="dashboard-section">';
-            $html .= '<h3>🔝 Most Used Technologies</h3>';
-
-            if (!empty($top_tech)) {
-                $html .= '<ul class="tech-list">';
-                foreach ($top_tech as $tech => $count) {
-                    $percentage = round(($count / $total_projects) * 100);
-                    $html .= '<li>';
-                    $html .= '<span class="tech-name">' . check_plain($tech) . '</span>';
-                    $html .= '<span class="tech-count">' . $count . ' project' . ($count > 1 ? 's' : '') . '</span>';
-                    $html .= '<div class="progress-bar"><div style="width: ' . $percentage . '%"></div></div>';
-                    $html .= '</li>';
-                }
-                $html .= '</ul>';
-            } else {
-                $html .= '<p>No technologies added yet.</p>';
-            }
-
-            $html .= '</div>'; // Close section
-            $html .= '</div>';
-
-            // Quick Actions
-            $html .= '<div class="dashboard-right">';
-            $html .= '<div class="dashboard-section">';
-            $html .= '<h3>⚡ Quick Actions</h3>';
-            $html .= '<ul class="quick-actions">';
-            $html .= '<li>' . l('➕ Add New Project', 'admin/content/projects/add') . '</li>';
-            $html .= '<li>' . l('👁️ View Public Portfolio', 'projects') . '</li>';
-            $html .= '</ul>';
-            $html .= '</div>'; // Close section
-
-            $html .= '</div>'; // Close dashboard-right
-            $html .= '</div>'; // Close two-column
-            $html .= '</div>'; // Close dashboard
-
             $block['content'] = array('#markup' => $html);
             break;
 

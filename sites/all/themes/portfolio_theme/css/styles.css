@@ -915,7 +915,7 @@ footer p {
     gap: 30px;
 }
 
-/* Project Card Styling (for your block content) */
+/* Project Card Styling*/
 .project-card {
     background: white;
     border-radius: 8px;
@@ -968,4 +968,6 @@ footer p {
 .project-card .project-link:hover {
     text-decoration: underline;
 }
+
+
 

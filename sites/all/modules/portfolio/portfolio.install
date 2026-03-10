@@ -29,6 +29,16 @@ function portfolio_schema()
                 "not null" => false,
                 'serialize' => TRUE,  // Automatically converts array to string
             ),
+            'github_link' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+            ),
+            'live_url' => array(
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => FALSE,
+            ),
             "created" => array(
                 "type" => "int",
                 "not null" => TRUE,
