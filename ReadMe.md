@@ -43,6 +43,7 @@
 - ✅ **Contact Form** - Allow visitors to reach you
 - ✅ **Email Notifications** - Automatic email alerts
 - ✅ **Copy to Sender** - Optional confirmation emails
+- ✅ **AI Chatbot** - Optional
 
 ### 📊 **Statistics & Analytics**
 - ✅ **Project Counter** - Track total projects

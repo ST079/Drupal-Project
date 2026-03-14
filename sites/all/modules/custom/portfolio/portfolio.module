@@ -456,26 +456,6 @@ function portfolio_project_view($project)
     return $output;
 }
 
-// /**
-//  * Temporary function to create test data
-//  * Run once by visiting: /create-test-project
-//  */
-// function portfolio_create_test()
-// {
-//     $project = portfolio_project_create(array(
-//         'title' => 'My First Drupal Project',
-//         'description' => '<p>This is a test project I built while learning Drupal 7.</p>',
-//         'technologies' => array('Drupal 7', 'PHP', 'jQuery'),
-//     ));
-
-//     if (portfolio_project_save($project)) {
-//         drupal_set_message('Test project created with ID: ' . $project->pid);
-//     }
-
-//     drupal_goto('projects');
-// }
-
-
 
 /**
  * Generate fake projects for testing

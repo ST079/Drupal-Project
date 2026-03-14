@@ -1,0 +1,278 @@
+<?php
+
+/**
+ * @file
+ * Tests for the Portfolio module
+ */
+
+class PortfolioTestCase extends DrupalWebTestCase {
+  
+  /**
+   * Required: Test info
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Portfolio module functionality',
+      'description' => 'Tests projects, forms, and blocks in Portfolio module',
+      'group' => 'Portfolio',
+    );
+  }
+  
+  /**
+   * Setup: Install modules and create test user
+   */
+  public function setUp() {
+    // Enable required modules
+    parent::setUp('entity', 'portfolio');
+    
+    // Create admin user for tests
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer site configuration',
+      'access content',
+    ));
+  }
+  
+  /**
+   * Test 1: Module installed correctly
+   */
+  public function testModuleInstalled() {
+    // Check if module is enabled
+    $module_exists = module_exists('portfolio');
+    $this->assertTrue($module_exists, t('Portfolio module is installed.'));
+    
+    // Check if database table exists
+    $table_exists = db_table_exists('portfolio_projects');
+    $this->assertTrue($table_exists, t('portfolio_projects table exists.'));
+  }
+  
+  /**
+   * Test 2: Entity info
+   */
+  public function testEntityInfo() {
+    $entity_info = entity_get_info('portfolio_project');
+    
+    $this->assertNotNull($entity_info, t('Entity info exists.'));
+    $this->assertEqual('portfolio_projects', $entity_info['base table'], t('Base table is correct.'));
+    $this->assertEqual('pid', $entity_info['entity keys']['id'], t('Entity ID key is correct.'));
+  }
+  
+  /**
+   * Test 3: Create project programmatically
+   */
+  public function testCreateProject() {
+    // Create a test project
+    $project = portfolio_project_create();
+    $project->title = $this->randomName(20);
+    $project->description = "<p>" . $this->randomName(100) . "</p>";
+    $project->technologies = array('PHP', 'Drupal', 'Testing');
+    
+    portfolio_project_save($project);
+    
+    // Check if saved
+    $this->assertNotNull($project->pid, t('Project saved with ID: @pid', array('@pid' => $project->pid)));
+    
+    // Load and verify
+    $loaded = portfolio_project_load($project->pid);
+    $this->assertEqual($project->title, $loaded->title, t('Project title matches.'));
+    $this->assertEqual($project->description, $loaded->description, t('Project description matches.'));
+    $this->assertEqual($project->technologies, $loaded->technologies, t('Technologies match.'));
+    
+    return $project;
+  }
+  
+  /**
+   * Test 4: Update project
+   */
+  public function testUpdateProject() {
+    // Create project first
+    $project = portfolio_project_create();
+    $project->title = 'Original Title';
+    $project->description = 'Original description';
+    $project->technologies = array('Original');
+    portfolio_project_save($project);
+    
+    $original_pid = $project->pid;
+    $original_changed = $project->created;
+    
+    // Wait 1 second to ensure timestamp changes
+    sleep(1);
+    
+    // Update project
+    $project->title = 'Updated Title';
+    $project->description = 'Updated description';
+    $project->technologies = array('Updated', 'New');
+    portfolio_project_save($project);
+    
+    // Reload and verify
+    $updated = portfolio_project_load($original_pid);
+    $this->assertEqual('Updated Title', $updated->title, t('Title updated.'));
+    $this->assertEqual('Updated description', $updated->description, t('Description updated.'));
+    $this->assertEqual(array('Updated', 'New'), $updated->technologies, t('Technologies updated.'));
+    $this->assertTrue($updated->created > $original_changed, t('Changed timestamp updated.'));
+  }
+  
+  /**
+   * Test 5: Delete project
+   */
+  public function testDeleteProject() {
+    // Create project
+    $project = portfolio_project_create();
+    $project->title = 'Delete Test';
+    portfolio_project_save($project);
+    
+    $pid = $project->pid;
+    
+    // Delete it
+    entity_delete('portfolio_project', $pid);
+    
+    // Try to load
+    $deleted = portfolio_project_load($pid);
+    $this->assertFalse($deleted, t('Project deleted successfully.'));
+  }
+  
+  /**
+   * Test 6: Admin page access
+   */
+  public function testAdminAccess() {
+    // Check anonymous can't access admin
+    $this->drupalGet('mydashboard');
+    $this->assertResponse(403, t('Anonymous cannot access admin page.'));
+    
+    // Login as admin
+    $this->drupalLogin($this->admin_user);
+    
+    // Check admin can access
+    $this->drupalGet('mydashboard');
+    $this->assertResponse(200, t('Admin can access projects page.'));
+    
+    // Check add form
+    $this->drupalGet('admin/content/projects/add');
+    $this->assertResponse(200, t('Admin can access add form.'));
+    $this->assertFieldByName('title', NULL, t('Title field exists.'));
+  }
+  
+  /**
+   * Test 7: Public pages
+   */
+  public function testPublicPages() {
+    // Create a project first
+    $project = portfolio_project_create();
+    $project->title = 'Public Test Project';
+    $project->description = '<p>This is a public test.</p>';
+    $project->technologies = array('Public', 'Test');
+    portfolio_project_save($project);
+    
+    // Test projects listing page
+    $this->drupalGet('projects');
+    $this->assertResponse(200, t('Projects page accessible.'));
+    $this->assertText('Public Test Project', t('Project title appears in list.'));
+    
+    // Test individual project page
+    $this->drupalGet('projects/' . $project->pid);
+    $this->assertResponse(200, t('Project detail page accessible.'));
+    $this->assertText('Public Test Project', t('Project title on detail page.'));
+    $this->assertText('Public', t('Technology tag appears.'));
+    $this->assertText('Test', t('Technology tag appears.'));
+  }
+  
+  /**
+   * Test 8: Contact form
+   */
+  public function testContactForm() {
+    // Test contact page
+    $this->drupalGet('contact');
+    $this->assertResponse(200, t('Contact page accessible.'));
+    
+    // Check form fields exist
+    $this->assertFieldByName('submitted[full_name]', NULL, t('Name field exists.'));
+    $this->assertFieldByName('submitted[email_address]', NULL, t('Email field exists.'));
+    $this->assertFieldByName('submitted[subject]', NULL, t('Subject field exists.'));
+    $this->assertFieldByName('submitted[message]', NULL, t('Message field exists.'));
+    
+    // Submit empty form (should fail validation)
+    $this->drupalPost('contact', array(), t('Send Message'));
+    $this->assertText('Name field is required', t('Name validation works.'));
+    
+    // Submit valid form
+    $edit = array(
+      'submitted[full_name]' => 'Test User',
+      'submitted[email_address]' => 'test@example.com',
+      'submitted[subject]' => 'Test Subject',
+      'submitted[message]' => 'This is a test message for the contact form.',
+    );
+    
+    $this->drupalPost('contact', $edit, t('Send Message'));
+    $this->assertText('Your message has been sent', t('Form submits successfully.'));
+    // $this->assertUrl('contact/thank-you', array(), t('Redirects to thank you page.'));
+  }
+  
+  /**
+   * Test 9: Blocks
+   */
+  public function testBlocks() {
+    // Create some test projects
+    for ($i = 1; $i <= 5; $i++) {
+      $project = portfolio_project_create();
+      $project->title = "Block Test Project $i";
+      $project->technologies = array('Test', "Tech $i");
+      portfolio_project_save($project);
+    }
+    
+    // Test stats block
+    $this->drupalGet('projects ');
+    $this->assertText('Portfolio Statistics', t('Stats block subject exists.'));
+    // Check stats values (should be at least 5)
+    $this->assertRaw('Total Projects', t('Stats block shows project count.'));
+
+    $this->drupalGet('');
+    // Test recent projects block
+    $this->assertText('Recent Projects', t('Recent projects block exists.'));
+  }
+  
+  /**
+   * Test 10: Dashboard
+   */
+  public function testDashboard() {
+    // Login as admin
+    $this->drupalLogin($this->admin_user);
+    
+    // Access dashboard
+    $this->drupalGet('mydashboard');
+    $this->assertResponse(200, t('Dashboard accessible to admin.'));
+    $this->assertText('Portfolio Dashboard', t('Dashboard title found.'));
+    $this->assertText('Total Projects', t('Dashboard shows stats.'));
+    
+    // Logout
+    $this->drupalLogout();
+    
+    // Try accessing dashboard as anonymous
+    $this->drupalGet('mydashboard');
+    $this->assertResponse(403, t('Dashboard inaccessible to anonymous.'));
+  }
+  
+  /**
+   * Test 12: Menu items exist
+   */
+  public function testMenuItems() {
+    $menu_items = module_invoke('portfolio', 'menu');
+    
+    $this->assertTrue(isset($menu_items['projects']), t('Projects menu item exists.'));
+    $this->assertTrue(isset($menu_items['contact']), t('Contact menu item exists.'));
+    $this->assertTrue(isset($menu_items['mydashboard']), t('Dashboard menu item exists.'));
+    $this->assertTrue(isset($menu_items['about-me']), t('About Me menu item exists.'));
+  }
+  
+  /**
+   * Test 13: Hook implementations
+   */
+  public function testHooks() {
+    // Test hook_entity_info
+    $entity_info = module_invoke('portfolio', 'entity_info');
+    $this->assertTrue(isset($entity_info['portfolio_project']), t('hook_entity_info implemented.'));
+    
+    // Test hook_block_info
+    $block_info = module_invoke('portfolio', 'block_info');
+    $this->assertTrue(isset($block_info['portfolio_stats']), t('hook_block_info implemented.'));
+    $this->assertTrue(isset($block_info['portfolio_recent']), t('hook_block_info implemented.'));
+  }
+}
