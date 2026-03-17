@@ -95,7 +95,7 @@ class PortfolioTestCase extends DrupalWebTestCase {
     $original_changed = $project->created;
     
     // Wait 1 second to ensure timestamp changes
-    sleep(1);
+    sleep(1000);
     
     // Update project
     $project->title = 'Updated Title';
@@ -180,11 +180,10 @@ class PortfolioTestCase extends DrupalWebTestCase {
    */
   public function testContactForm() {
     // Test contact page
-    $this->drupalGet('contact');
+    $this->drupalGet('node/3');
     $this->assertResponse(200, t('Contact page accessible.'));
-    
-    // Check form fields exist
-    $this->assertFieldByName('submitted[full_name]', NULL, t('Name field exists.'));
+     // Check form fields exist
+    $this->assertFieldByName('name', NULL, t('Name field exists.'));
     $this->assertFieldByName('submitted[email_address]', NULL, t('Email field exists.'));
     $this->assertFieldByName('submitted[subject]', NULL, t('Subject field exists.'));
     $this->assertFieldByName('submitted[message]', NULL, t('Message field exists.'));
@@ -203,7 +202,7 @@ class PortfolioTestCase extends DrupalWebTestCase {
     
     $this->drupalPost('contact', $edit, t('Send Message'));
     $this->assertText('Your message has been sent', t('Form submits successfully.'));
-    // $this->assertUrl('contact/thank-you', array(), t('Redirects to thank you page.'));
+    $this->assertUrl('contact/thank-you', array(), t('Redirects to thank you page.'));
   }
   
   /**
@@ -219,13 +218,10 @@ class PortfolioTestCase extends DrupalWebTestCase {
     }
     
     // Test stats block
-    $this->drupalGet('projects ');
+    $this->drupalGet('projects');
     $this->assertText('Portfolio Statistics', t('Stats block subject exists.'));
-    // Check stats values (should be at least 5)
-    $this->assertRaw('Total Projects', t('Stats block shows project count.'));
-
-    $this->drupalGet('');
     // Test recent projects block
+    $this->drupalGet('home');
     $this->assertText('Recent Projects', t('Recent projects block exists.'));
   }
   

@@ -442,12 +442,14 @@ function portfolio_project_view($project)
     $output .= '<p><strong>Technologies:</strong> ' . check_plain($technologies) . '</p>';
     $output .= '</div>';
     $output .= '<div>';
-    $output .= '<div class="project-links">';
+    $output .= '<div class="social-links">';
     if (!empty($project->github_link)) {
         $output .= '<a class="social-link github" href="' . check_plain($project->github_link) . '" target="_blank">🐙 GitHub</a>';
     }
     if (!empty($project->live_url)) {
         $output .= '<a class="social-link live" href="' . check_plain($project->live_url) . '" target="_blank">🚀 Live Site</a>';
+    } else{
+        $output .= '<span class="social-link ongoing disabled">OnGoing</span>';
     }
     $output .= '</div>';
     $output .= '</div>';
